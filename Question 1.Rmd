@@ -1,0 +1,136 @@
+---
+title: "Assignment 3"
+author: "Haipeng Lin 44451253"
+date: "03/10/2019"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+```{r}
+x<-c(55,56,57)
+x
+```
+The mortality rate $q_x$ is
+```{r}
+qx_1<-c(0.001046,0.001199,0.001375)
+qx_1
+```
+$p_x=1-q_x$
+```{r}
+px_1<-1-qx_1
+px_1
+```
+$_tp_x=p_xp_{x+1}...p_{x+t-1}$
+```{r}
+tpx_1<-c(px_1[1],px_1[1]*px_1[2],px_1[1]*px_1[2]*px_1[3])
+tpx_1
+```
+### The Possible Amounts
+The purchase price is $40250.
+The initial expenses are $100 plus 1.5% purchase price.
+```{r}
+iexp_1<-100+0.015*40250
+iexp_1
+```
+The annuity payment expenses are $10 per payment, plus inflation at 5% per annum from the date of the first payment
+```{r}
+t_1<-c(0,1,2);exp_inf<-0.05
+aexp_1<-10*(1+exp_inf)^t_1
+aexp_1
+```
+The first payment of $15000 and increasing thereafter in compound fashion at the rate of 1.923 08% per annum. 
+```{r}
+paym_inf<-0.0192308
+paym_1<-15000*(1+paym_inf)^t_1
+paym_1
+```
+The valuation basis interest rate is 6%.
+The interest rate needed is $$j=\frac{1+valuation\,basis\,interest\,rate}{1+payment\,infaltion\,rate}-1$$
+```{r}
+j=(1+0.06)/(1+0.0192308)-1
+j
+```
+For the three-year temporary annuities, the policy value at the end of the year is $$payment*a_{x:\overline{n-1}|}=payments*\frac{v-A_{x:\overline{n-1}|}}{d}\ at\
+\ j$$
+$$A_{56:\overline{3}|}=0.889132\ and\ A_{57:\overline{2}|}=0.924607$$
+```{r}
+v<-1/(1+j);d<-(1-v)
+A<-c(0.889132,0.924607)
+policyv_1<-c(paym_1[1:2]*(v-A)/d,0)
+policyv_1
+```
+### Expected Amounts
+The expected premiums
+```{r}
+Ep_1<-c(40250,0,0)
+Ep_1
+```
+The expected expense at the benginnig of the year 
+```{r}
+Eexp_1<-c(iexp_1,0,0)
+Eexp_1
+```
+The ecpected annuity payment expenses are$$annuity\,payment\,expenses*_tp_x$$
+```{r}
+Eaexp_1<-aexp_1*tpx_1
+Eaexp_1
+```
+The ecpected annuity payment are$$annuity\,payment*_tp_x$$
+```{r}
+Epaym_1<-paym_1*tpx_1
+Epaym_1
+```
+The expected policy values are $$policy\,value*_tp_x$$
+```{r}
+Epolicyv_1<-policyv_1*tpx_1
+Epolicyv_1
+```
+The earned interest rate $i$ is 8%.
+The expectd initerests are $$i(Expected\,premium+Expected\,policy\,value(EOY) at\,the\,previous\,year-Expected\,expenses(BOY))$$
+```{r}
+Eint_1<-c(0.08*(Ep_1[1]-Eexp_1[1]),0.08*(Ep_1[2:3]+Epolicyv_1[1:2]-Eexp_1[2:3]))
+Eint_1
+```
+### Question 1(a)
+The profit signatures are $$Expected\,policy\,value(EOY)\,at\,the\,previous\,year+Expected\,premiums-Expected\,expenses(BOY)$$
+$$-Expected\,annuity\,payment\,expenses-Expected\,annuity\,payment+Expected\,initerests-Expected\,policy\,value(EOY)$$
+
+```{r}
+transfers_1<-c()
+transfers_1[1]<-Ep_1[1]-Eexp_1[1]-Eaexp_1[1]-Epaym_1[1]+Eint_1[1]-Epolicyv_1[1]
+transfers_1[2:3]<-Epolicyv_1[1:2]-Eaexp_1[2:3]-Epaym_1[2:3]+Eint_1[2:3]-Epolicyv_1[2:3]
+transfers_1
+```
+### Question 1(b)
+The expected present value of transfer at the risk discount rate 12% is 
+$$EPV\,of\,profit\,signature=\sum_{t=1}^{3}(1+12\%)^{-t}\,Transfer_t$$
+```{r}
+tt<-c(1,2,3)
+EPV_Transfer_1<-sum(1.12^(-tt)*transfers_1)
+EPV_Transfer_1
+```
+$$Profit\,margin=\frac{Present\,value\,of\,profit\,signature}{Present\,value\,of\,expected\,premiums}$$
+```{r}
+profit_margin<-EPV_Transfer_1/Ep_1[1]
+profit_margin
+```
+### Question 1(c)
+The interal rate of return $y$ is the rate that $$EPV=\sum_{t=1}^{3}(1+y)^{-t}\,Transfer_t=0$$
+```{r}
+x<-seq(0.1,0.8,0.1)
+y<-c(sum((1+0.1)^(-tt)*transfers_1),sum((1+0.2)^(-tt)*transfers_1),sum((1+0.3)^(-tt)*transfers_1),sum((1+0.4)^(-tt)*transfers_1),sum((1+0.5)^(-tt)*transfers_1),sum((1+0.6)^(-tt)*transfers_1),sum((1+0.7)^(-tt)*transfers_1),sum((1+0.8)^(-tt)*transfers_1))
+plot(x,y)
+```
+The internal rate of return is approximately 50% p.a. 
+```{r}
+f<-function(p)(abs(sum((1+p)^(-tt)*transfers_1)))
+nlm(f,0.5)
+```
+The internal rate of return is 50.28%.
+The transfers in year 1 is a large negative value and its absolute value is smaller than the positive transfers in year 2. In order to cover the first year's loss and make profits, the risk disount rate should be as small as possible if we want the positive NPV to be as large as possible. However, the risk discount rate will be very high if we want the NPV to be zero.
+

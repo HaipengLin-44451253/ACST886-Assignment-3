@@ -1,0 +1,247 @@
+---
+title: "Assignment 3"
+author: "Haipeng Lin 44451253"
+date: "03/10/2019"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 2
+Fees: The premium-based fee: 45% in year 1, 1% thereafter
+      Buy/Sell Margin: 0.5%
+      Asset Fee: 0.3% p.a.
+Expenses: Acquisition Expenses: 45% of premium
+          Maintenance Expense: Annual in advance. $58 p.a. initially, inflating at 20% p.a.
+Basis for Profit-Test:
+      Unit Fund Earing Rate: 10%
+      Non-unit Fund Earing Rate: 8%
+      Withdrawal Rates: 25%, 20%, 17.5%; 15% thereafter.
+      
+### Double Decrement Table
+### Independent rates
+The $q_x^d$ and $q_x^w$ are given by Australian insured 2004--8 ultimate (2+) death only non-smoker rates for males.
+```{r}
+x<-c(30:39)
+x
+```
+```{r}
+qx.d<-c(0.00043,.00042,.00041,.00040,.00041,.00042,.00043,.00045,.00049,.00053)
+qx.d
+```
+
+```{r}
+qx.w<-c(.25,.2,.175,.150,.150,.150,.150,.150,.150,1)
+qx.w
+```
+### Dependent rates
+$$(aq)_x^d=q_x^d(1-0.5q_x^w)$$
+$$(aq)_x^w=q_x^w(1-0.5q_x^d)$$
+```{r}
+aqx.d<-qx.d*(1-0.5*qx.w)
+aqx.d
+```
+```{r}
+aqx.w<-qx.w*(1-0.5*qx.d)
+aqx.w
+```
+```{r}
+al.x<-c()
+ad.x.d<-c()
+ad.x.w<-c()
+al.x[1]<-100000
+```
+$$(ad)_x^d=(al)_x*(aq)_x^d$$
+$$(ad)_x^w=(al)_x*(aq)_x^w$$
+$$(al)_{x+1}=(al)_x-(ad)_x^d-(ad)_x^w$$
+```{r}
+for (j in 1:10) {
+  ad.x.d[j]<-al.x[j]*aqx.d[j]
+  ad.x.w[j]<-al.x[j]*aqx.w[j]
+  al.x[j+1]<-al.x[j]-ad.x.d[j]-ad.x.w[j]
+}
+al.x
+```
+```{r}
+ad.x.d
+```
+```{r}
+ad.x.w
+```
+### The Possible Amounts for an In-force Policy
+The vector of premium $P_t$ is
+```{r}
+prems<-c(rep(5000,10))
+prems
+```
+The Premium-based fee is $5000*45\%$ in year 1, $5000*1\%$ thereafter.
+```{r}
+pbf<-c(prems[1]*0.45,prems[2:10]*0.01)
+pbf
+```
+The Buy/Sell margin is $0.5\%*P_t*(1-45\%)$ in year 1, $0.5\%*P_t*(1-1\%)$ thereafter.
+```{r}
+bsm<-c(0.005*prems[1]*(1-0.45),0.005*prems[2:10]*(1-0.01))
+bsm
+```
+The Invested premium $$IP_t=P_t - Premium\,based\,fee - Buy/Sell\,margin$$
+```{r}
+IP<-prems-pbf-bsm
+IP
+```
+The earning rate on the unit fund is $i=10\%$, the asset fee is $m=0.3\%$. 
+The value of units at the end of year is $$VU_0=IP_0(1+i)(1-m)\;for\;t=0$$ 
+$$VU_t=(VU_{t-1}+IP_t)(1+i)(1-m)\;for\;t=1,2,3,...$$
+```{r}
+i<-0.1;m<-0.003
+VU<-c()
+for (j in 2:10) {
+  VU[1]<-IP[1]*(1+i)*(1-m)
+  VU[j]<-(VU[j-1]+IP[j])*(1+i)*(1-m)
+}
+VU
+```
+The initial expense rate is 45%, the maintenance expense in year 1 is $58, and the inflation is 20%.
+For year 1, the initial expenses at the beginnig of year are $5000*45\%+58$.
+The later expenses at the beginning of year are $58*(1+20\%)^{t-1}$ p.a.
+```{r}
+t<-c(1:10)
+exp<-c(prems[1]*0.45+58,58*1.2^(t[2:10]-1))
+exp
+```
+Death and Surrender Benefit are equal to the sell value of units held by the policy
+```{r}
+d.s_bft<-VU
+d.s_bft
+```
+### Expected Amounts per Initial Policy for the Unit Fund
+$$Expected\,Invested\,Premium(EIP_t)=IP_t\frac{(al)_{29+t}}{(al)_{30}}$$
+```{r}
+EIP_u<-IP*al.x[1:10]/al.x[1]
+EIP_u
+```
+$$Expected\,Value\,of\,Units(EVU_t)=VU_t\frac{(al)_{30+t}}{(al)_{30}}$$
+```{r}
+EVU_u<-VU*al.x[2:11]/al.x[1]
+EVU_u
+```
+Expected interest at year t is $i(EVU_{t-1}+EIP_t)$
+```{r}
+int_u<-c(i*EIP_u[1],i*(EVU_u[1:9]+EIP_u[2:10]))
+int_u
+```
+The funds transfered to the Non-unit Fund in year 1 are $$EIP_1+Interst_1-EVU_1$$
+The funds transfered to the Non-unit Fund in later years are $$EVU_{t-1}+EIP_t+Interst_t-EVU_t$$
+```{r}
+Tmsfr.t.nu<-c()
+for (j in 2:10) {
+  Tmsfr.t.nu[1]<-EIP_u[1]+int_u[1]-EVU_u[1]
+  Tmsfr.t.nu[j]<-EVU_u[j-1]+EIP_u[j]+int_u[j]-EVU_u[j]
+}
+Tmsfr.t.nu
+```
+### Expected Amounts per Initial Policy for the Non-unit Fund
+$$Expected\,premium\,based\,fees=premium\,based\,fees\,\frac{(al)_{29+t}}{(al)_{30}}$$
+```{r}
+Epbf_nu<-pbf*al.x[1:10]/al.x[1]
+Epbf_nu
+```
+$$Expected\,Buy\,Sell\,margins=Buy\,Sell\,margins\,\frac{(al)_{29+t}}{(al)_{30}}$$
+```{r}
+Ebsm_nu<-bsm*al.x[1:10]/al.x[1]
+Ebsm_nu
+```
+$$Expected\,Expenses=Expenses\,\frac{(al)_{29+t}}{(al)_{30}}$$
+```{r}
+Eexp_nu<-exp*al.x[1:10]/al.x[1]
+Eexp_nu
+```
+$$Expected\,Death\,Benefits=Death\,Benefits\,\frac{(ad)_{29+t}^d}{(al)_{30}}$$
+```{r}
+Ed_bft_nu<-d.s_bft*ad.x.d/al.x[1]
+Ed_bft_nu
+```
+$$Expected\,Surrender\,Benefits=Surrender\,Benefits\,\frac{(ad)_{29+t}^w}{(al)_{30}}$$
+```{r}
+Es_bft_nu<-d.s_bft*ad.x.w/al.x[1]
+Es_bft_nu
+```
+The Non-unit fund earning rate is 8%.$$Expected\,interest=i(Expected\,premium\,based\,fees+Expected\,Buy\,Sell\,margins-Expected\,Expenses)$$
+```{r}
+i_nu<-0.08
+int_nu<-i_nu*(Epbf_nu+Ebsm_nu-Eexp_nu)
+int_nu
+```
+### Question 2(a)
+The transfers are $$Expected\,premium\,based\,fees+Expected\,Buy\,Sell\,margins$$
+$$-Expected\,Expenses+Expected\,Interest+Expected\,transfer\,from\,Unit\,Fund$$
+$$-Expected\,death\,benefits-Expected\,surrender\,benefits$$
+The profit signature is  
+```{r}
+Transfer<-Epbf_nu+Ebsm_nu-Eexp_nu+int_nu+Tmsfr.t.nu-Ed_bft_nu-Es_bft_nu
+Transfer
+```
+The expected present value of transfer at 12.5% is 
+$$EPV=\sum_{t=1}^{10}(1+12.5\%)^{-t}\,Transfer_t$$
+```{r}
+EPV_Transfer<-sum(1.125^(-t)*Transfer)
+EPV_Transfer
+```
+The profit measure is $\frac{PV\,of\,transfers\,at\,12.5\%}{First\,year\,premium}$
+```{r}
+prob<-EPV_Transfer/prems[1]
+prob
+```
+### Question 2(b)
+The separate policy value is 
+```{r}
+policy_value<-VU
+policy_value
+```
+We now try to find the changed policy value in year 9 to make the vaule of transfer in the final year is zero.
+```{r}
+f<-function(p)(abs(Epbf_nu[10]+Ebsm_nu[10]-Eexp_nu[10]+int_nu[10]-Ed_bft_nu[10]-Es_bft_nu[10]+(EIP_u[10]+(EIP_u[10]+p*al.x[10]/al.x[1])*i+p*al.x[10]/al.x[1])))
+nlm(f,VU[9])
+```
+The value of the policy value in year 9 should be changed to 67319.01, and the difference is approximately 3.70.
+```{r}
+policy_value[9]<-nlm(f,VU[9])$estimate
+policy_value[9]
+```
+```{r}
+policy_value[9]-VU[9]
+```
+```{r}
+policy_value
+```
+Expected policy value
+```{r}
+Epolicy_value<-policy_value*al.x[2:11]/al.x[1]
+Epolicy_value
+```
+The changed funds transfered to the Non-unit Fund
+```{r}
+Tmsfr.t.nu_c<-c()
+for (j in 2:10) {
+  Tmsfr.t.nu_c[1]<-EIP_u[1]+int_u[1]-Epolicy_value[1]
+  Tmsfr.t.nu_c[j]<-Epolicy_value[j-1]+EIP_u[j]+int_u[j]-Epolicy_value[j]
+}
+Tmsfr.t.nu_c
+```
+The changed profit signature
+```{r}
+Transfer_c<-Epbf_nu+Ebsm_nu-Eexp_nu+int_nu+Tmsfr.t.nu_c-Ed_bft_nu-Es_bft_nu
+Transfer_c
+```
+The last negative transfer is due to the approximation problem, which can be rounded to zero.
+The expected present value of the changed transfer at 12.5% is 
+```{r}
+EPV_Transfer_c<-sum(1.125^(-t)*Transfer_c)
+EPV_Transfer_c
+```
+### Question 2(c)
+Decreased. Money has been held back in the Unit Fund at time 9 (rather than being released to shareholders) to give a zero transfer at time 10. Since these additional funds earn only 10% p.a. interest in the Unit Fund, whereas the discount rate is 12.50%, overall the business is now (slightly) less profitable.
+
